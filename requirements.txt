@@ -1,0 +1,2 @@
+PySide2
+pywinpty; sys_platform == 'win32'
