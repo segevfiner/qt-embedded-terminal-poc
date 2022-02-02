@@ -1,0 +1,12 @@
+{
+  "name": "qt-embedded-terminal",
+  "version": "0.1.0",
+  "description": "Qt Embedded Terminal",
+  "private": "true",
+  "author": "Segev Finer",
+  "license": "MIT",
+  "dependencies": {
+    "xterm": "^4.16.0",
+    "xterm-addon-fit": "^0.5.0"
+  }
+}
