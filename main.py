@@ -18,8 +18,13 @@ class TerminalAPI(QtCore.QObject):
 
     @QtCore.Slot(str)
     def write(self, text: str):
-        print("write:", repr(text))
+        # print("write:", repr(text))
         self.term.proc.write(text)
+
+    @QtCore.Slot(int, int)
+    def resize(self, cols: int, rows: int):
+        # print("write:", repr(text))
+        self.term.proc.setwinsize(rows, cols)
 
 
 class WebSocketTransport(QtWebChannel.QWebChannelAbstractTransport):
@@ -93,7 +98,7 @@ class EmbeddedTerminal(QtWidgets.QWidget):
         try:
             while True:
                 data = self.proc.read()
-                print("read:", repr(data))
+                # print("read:", repr(data))
                 self.api.input.emit(data)
         except (EOFError, ConnectionAbortedError):
             pass

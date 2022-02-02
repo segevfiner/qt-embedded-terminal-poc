@@ -48,12 +48,18 @@
             socket.addEventListener("open", () => {
                 term.write("WebSocket connected, setting up QWebChannel.\r\n");
                 new QWebChannel(socket, channel => {
+                    channel.objects.term.resize(term.cols, term.rows);
+
                     channel.objects.term.input.connect(text => {
                         term.write(text);
                     });
 
                     term.onData(data => {
                         channel.objects.term.write(data);
+                    });
+
+                    term.onResize((cols, rows) => {
+                        channel.objects.term.resize(cols, rows);
                     });
                 });
             });
