@@ -31,36 +31,19 @@
                 fitAddon.fit();
             });
 
-            const params = new URLSearchParams(location.search);
-            const port = params.get("port");
-            if (port == null) {
-                term.write("Missing port!\r\n");
-                throw new Error("Missing port!");
-            }
+            new QWebChannel(qt.webChannelTransport, channel => {
+                channel.objects.term.resize(term.cols, term.rows);
 
-            const socket = new WebSocket(`ws://localhost:${port}`);
-            socket.addEventListener("close", () => {
-                term.write("web channel closed!\r\n")
-            });
-            socket.addEventListener("error", error => {
-                term.write(`web channel error: ${error}\r\n`);
-            });
-            socket.addEventListener("open", () => {
-                term.write("WebSocket connected, setting up QWebChannel.\r\n");
-                new QWebChannel(socket, channel => {
-                    channel.objects.term.resize(term.cols, term.rows);
+                channel.objects.term.input.connect(text => {
+                    term.write(text);
+                });
 
-                    channel.objects.term.input.connect(text => {
-                        term.write(text);
-                    });
+                term.onData(data => {
+                    channel.objects.term.write(data);
+                });
 
-                    term.onData(data => {
-                        channel.objects.term.write(data);
-                    });
-
-                    term.onResize((cols, rows) => {
-                        channel.objects.term.resize(cols, rows);
-                    });
+                term.onResize((cols, rows) => {
+                    channel.objects.term.resize(cols, rows);
                 });
             });
         </script>
