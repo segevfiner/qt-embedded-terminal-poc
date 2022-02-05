@@ -1,7 +1,14 @@
+from os import environ
 import sys
 import pathlib
 import threading
-from winpty import PtyProcess
+import argparse
+import struct
+if sys.platform == "win32":
+    from winpty import PtyProcess
+else:
+    import termios
+    import pty
 from PySide2 import QtCore, QtWidgets, QtWebEngine, QtWebEngineWidgets, QtWebChannel, QtNetwork, QtWebSockets
 
 
@@ -18,17 +25,26 @@ class TerminalAPI(QtCore.QObject):
     @QtCore.Slot(str)
     def write(self, text: str):
         # print("write:", repr(text))
-        self.term.proc.write(text)
+        if sys.platform == "win32":
+            self.term.proc.write(text)
+        else:
+            os.write(self.term.pty, text.encode())
 
     @QtCore.Slot(int, int)
     def resize(self, cols: int, rows: int):
         # print("write:", repr(text))
-        self.term.proc.setwinsize(rows, cols)
+        if sys.platform == "win32":
+            self.term.proc.setwinsize(rows, cols)
+        else:
+            s = struct.pack('HHHH', rows, cols, 0, 0)
+            fcntl.ioctl(self.term.pty, termios.TIOCSWINSZ, s)
 
 
 class EmbeddedTerminal(QtWidgets.QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, shell, parent=None):
         super().__init__(parent=parent)
+
+        self.shell = shell
 
         self.setWindowTitle("Qt Embedded Terminal Demo")
         self.setMinimumWidth(640)
@@ -49,12 +65,23 @@ class EmbeddedTerminal(QtWidgets.QWidget):
 
         self.webview.load(QtCore.QUrl.fromLocalFile(str(_SCRIPT_DIR / "index.html")))
 
-        self.proc = PtyProcess.spawn(["pwsh"])
+        if sys.platform == "win32":
+            self.proc = PtyProcess.spawn([self.shell])
+        else:
+            self.pid, self.pty = pty.fork()
+            if self.pid == 0:
+                os.execlp(self.shell, self.shell)
+
         self.read_thread = threading.Thread(target=self.read_thread_main)
         self.read_thread.start()
 
     def closeEvent(self, event):
-        self.proc.close(force=True)
+        if sys.platform == "win32":
+            self.proc.close(force=True)
+        else:
+            os.close(self.pty)
+            os.waitpid(self.pid, 0)
+
         self.read_thread.join()
 
     def read_thread_main(self):
@@ -62,7 +89,10 @@ class EmbeddedTerminal(QtWidgets.QWidget):
         import time; time.sleep(1)
         try:
             while True:
-                data = self.proc.read()
+                if sys.platform == "win32":
+                    data = self.proc.read()
+                else:
+                    data = os.read(self.pty, 1024).decode()
                 # print("read:", repr(data))
                 self.api.input.emit(data)
         except (EOFError, ConnectionAbortedError):
@@ -75,7 +105,13 @@ def main():
     QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
     app = QtWidgets.QApplication(sys.argv)
 
-    window = EmbeddedTerminal()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--shell", default="pwsh" if sys.platform == "win32" else os.environ["SHELL"])
+    # TODO Create a login shell by default on Linux (But not on macOS)
+
+    args = parser.parse_args()
+
+    window = EmbeddedTerminal(shell=args.shell)
     window.show()
 
     return app.exec_()
