@@ -1,7 +1,6 @@
 import sys
 import pathlib
 import threading
-import typing
 from winpty import PtyProcess
 from PySide2 import QtCore, QtWidgets, QtWebEngine, QtWebEngineWidgets, QtWebChannel, QtNetwork, QtWebSockets
 
