@@ -58,6 +58,7 @@ class EmbeddedTerminal(QtWidgets.QWidget):
         self.read_thread.join()
 
     def read_thread_main(self):
+        # TODO Something more robust to wait for the API to connect?
         import time; time.sleep(1)
         try:
             while True:
