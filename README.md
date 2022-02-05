@@ -16,7 +16,8 @@ npm install
 In case I ever want to make this more fully blown.
 
 - Make it work on other OS than Windows by also supporting the standard `pty` module.
-- Handle window resize so it doesn't leave a margin at the bottom of the window.
+- Handle window resize so it doesn't leave a margin at the bottom of the window. I think VS Code
+  just uses some CSS to align the terminal to the bottom.
 - Bundle resources.
 - Minify/webpack.
 - Include `xterm-addon-webgl`.
